@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useHotelData } from '@/hooks/useHotelData';
 import { Booking, BookingStatus, Guest } from '@/types/hotel';
-import { Plus, Search, LogIn, LogOut } from 'lucide-react';
+import { Plus, Search, LogIn, LogOut, UserCheck } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 
 const statusVariant: Record<BookingStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -20,20 +21,71 @@ const statusVariant: Record<BookingStatus, 'default' | 'secondary' | 'destructiv
 };
 
 const Bookings = () => {
-  const { rooms, guests, bookings, addBooking, updateBooking, addGuest, getGuestById, getRoomById, updateRoom } = useHotelData();
+  const { rooms, guests, bookings, addBooking, updateBooking, addGuest, getGuestById, getRoomById, updateRoom, getAvailableBeds } = useHotelData();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Guest fields
+  const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestIdType, setGuestIdType] = useState('Aadhar');
   const [guestIdNumber, setGuestIdNumber] = useState('');
+  const [guestSearchQuery, setGuestSearchQuery] = useState('');
+  const [showGuestSuggestions, setShowGuestSuggestions] = useState(false);
+
   const [roomId, setRoomId] = useState('');
+  const [bedNumber, setBedNumber] = useState<string>('');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
 
-  const availableRooms = rooms.filter((r) => r.status === 'Available');
+  const selectedRoom = roomId ? getRoomById(roomId) : null;
+  const isDormitory = selectedRoom?.type === 'Dormitory';
+  const availableBeds = isDormitory ? getAvailableBeds(roomId) : [];
+
+  // Rooms available for booking: Available rooms + Dormitory rooms with free beds
+  const bookableRooms = rooms.filter((r) => {
+    if (r.status === 'Maintenance') return false;
+    if (r.type === 'Dormitory') return getAvailableBeds(r.id).length > 0;
+    return r.status === 'Available';
+  });
+
+  // Guest autofill suggestions
+  const guestSuggestions = useMemo(() => {
+    if (!guestSearchQuery || guestSearchQuery.length < 2) return [];
+    const q = guestSearchQuery.toLowerCase();
+    return guests.filter((g) =>
+      g.name.toLowerCase().includes(q) || g.phone.includes(q)
+    ).slice(0, 5);
+  }, [guests, guestSearchQuery]);
+
+  const selectExistingGuest = (guest: Guest) => {
+    setSelectedGuestId(guest.id);
+    setGuestName(guest.name);
+    setGuestPhone(guest.phone);
+    setGuestIdType(guest.idType);
+    setGuestIdNumber(guest.idNumber);
+    setGuestSearchQuery('');
+    setShowGuestSuggestions(false);
+  };
+
+  const clearGuestSelection = () => {
+    setSelectedGuestId(null);
+    setGuestName('');
+    setGuestPhone('');
+    setGuestIdType('Aadhar');
+    setGuestIdNumber('');
+  };
+
+  const resetForm = () => {
+    clearGuestSelection();
+    setGuestSearchQuery('');
+    setRoomId('');
+    setBedNumber('');
+    setCheckIn('');
+    setCheckOut('');
+  };
 
   const handleCreate = () => {
     if (!guestName || !roomId || !checkIn || !checkOut) return;
@@ -43,34 +95,47 @@ const Bookings = () => {
     const days = differenceInDays(parseISO(checkOut), parseISO(checkIn));
     if (days <= 0) return;
 
-    const guest: Guest = { id: crypto.randomUUID(), name: guestName, phone: guestPhone, idType: guestIdType, idNumber: guestIdNumber };
-    addGuest(guest);
+    // Dormitory requires bed selection
+    if (isDormitory && !bedNumber) return;
 
+    let guestId = selectedGuestId;
+    if (!guestId) {
+      const guest: Guest = { id: crypto.randomUUID(), name: guestName, phone: guestPhone, idType: guestIdType, idNumber: guestIdNumber };
+      addGuest(guest);
+      guestId = guest.id;
+    }
+
+    const pricePerUnit = room.pricePerNight; // per bed for dormitory, per room otherwise
     const booking: Booking = {
       id: crypto.randomUUID(),
-      guestId: guest.id,
+      guestId,
       roomId,
       checkIn,
       checkOut,
       status: 'Confirmed',
-      totalAmount: days * room.pricePerNight,
+      totalAmount: days * pricePerUnit,
       createdAt: new Date().toISOString(),
+      ...(isDormitory ? { bedNumber: Number(bedNumber) } : {}),
     };
     addBooking(booking);
     setOpen(false);
-    setGuestName(''); setGuestPhone(''); setGuestIdNumber(''); setRoomId(''); setCheckIn(''); setCheckOut('');
+    resetForm();
   };
 
   const handleCheckIn = (booking: Booking) => {
     updateBooking({ ...booking, status: 'Checked-in' });
     const room = getRoomById(booking.roomId);
-    if (room) updateRoom({ ...room, status: 'Occupied' });
+    if (room && room.type !== 'Dormitory') {
+      updateRoom({ ...room, status: 'Occupied' });
+    }
   };
 
   const handleCheckOut = (booking: Booking) => {
     updateBooking({ ...booking, status: 'Checked-out' });
     const room = getRoomById(booking.roomId);
-    if (room) updateRoom({ ...room, status: 'Available' });
+    if (room && room.type !== 'Dormitory') {
+      updateRoom({ ...room, status: 'Available' });
+    }
   };
 
   const handleCancel = (booking: Booking) => {
@@ -81,7 +146,7 @@ const Bookings = () => {
     return bookings.filter((b) => {
       const guest = getGuestById(b.guestId);
       const room = getRoomById(b.roomId);
-      const matchSearch = !search || 
+      const matchSearch = !search ||
         guest?.name.toLowerCase().includes(search.toLowerCase()) ||
         room?.roomNumber.includes(search);
       const matchStatus = statusFilter === 'all' || b.status === statusFilter;
@@ -93,38 +158,103 @@ const Bookings = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Bookings</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-1" /> New Booking</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Create Booking</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label>Guest Name</Label>
-                <Input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Full name" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              {/* Guest autofill search */}
+              {guests.length > 0 && !selectedGuestId && (
                 <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} placeholder="+91..." />
+                  <Label className="flex items-center gap-1"><UserCheck className="h-3 w-3" /> Search Existing Guest</Label>
+                  <div className="relative">
+                    <Input
+                      value={guestSearchQuery}
+                      onChange={(e) => { setGuestSearchQuery(e.target.value); setShowGuestSuggestions(true); }}
+                      onFocus={() => setShowGuestSuggestions(true)}
+                      placeholder="Type name or phone to autofill..."
+                    />
+                    {showGuestSuggestions && guestSuggestions.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 shadow-md">
+                        {guestSuggestions.map((g) => (
+                          <button
+                            key={g.id}
+                            className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-sm hover:bg-accent"
+                            onClick={() => selectExistingGuest(g)}
+                          >
+                            <span className="font-medium">{g.name}</span>
+                            <span className="text-muted-foreground">{g.phone}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>ID Number</Label>
-                  <Input value={guestIdNumber} onChange={(e) => setGuestIdNumber(e.target.value)} placeholder="ID number" />
+              )}
+
+              {selectedGuestId && (
+                <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{guestName}</p>
+                    <p className="text-xs text-muted-foreground">{guestPhone} · {guestIdType}: {guestIdNumber}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={clearGuestSelection}>Change</Button>
                 </div>
-              </div>
+              )}
+
+              {!selectedGuestId && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Guest Name</Label>
+                    <Input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Full name" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      <Input value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} placeholder="+91..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>ID Number</Label>
+                      <Input value={guestIdNumber} onChange={(e) => setGuestIdNumber(e.target.value)} placeholder="ID number" />
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div className="space-y-2">
                 <Label>Room</Label>
-                <Select value={roomId} onValueChange={setRoomId}>
+                <Select value={roomId} onValueChange={(v) => { setRoomId(v); setBedNumber(''); }}>
                   <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
                   <SelectContent>
-                    {availableRooms.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>Room {r.roomNumber} — {r.type} (₹{r.pricePerNight}/night)</SelectItem>
+                    {bookableRooms.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        Room {r.roomNumber} — {r.type}
+                        {r.type === 'Dormitory'
+                          ? ` (${getAvailableBeds(r.id).length} beds free · ₹${r.pricePerNight}/bed/night)`
+                          : ` (₹${r.pricePerNight}/night)`
+                        }
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {isDormitory && (
+                <div className="space-y-2">
+                  <Label>Select Bed</Label>
+                  <Select value={bedNumber} onValueChange={setBedNumber}>
+                    <SelectTrigger><SelectValue placeholder="Choose bed number" /></SelectTrigger>
+                    <SelectContent>
+                      {availableBeds.map((b) => (
+                        <SelectItem key={b} value={String(b)}>Bed #{b}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Check-in</Label>
@@ -182,7 +312,10 @@ const Bookings = () => {
                   return (
                     <TableRow key={b.id}>
                       <TableCell className="font-medium">{guest?.name || '—'}</TableCell>
-                      <TableCell>{room?.roomNumber || '—'}</TableCell>
+                      <TableCell>
+                        {room?.roomNumber || '—'}
+                        {b.bedNumber ? <span className="text-muted-foreground text-xs ml-1">(Bed #{b.bedNumber})</span> : ''}
+                      </TableCell>
                       <TableCell>{format(parseISO(b.checkIn), 'dd MMM yyyy')}</TableCell>
                       <TableCell>{format(parseISO(b.checkOut), 'dd MMM yyyy')}</TableCell>
                       <TableCell>₹{b.totalAmount.toLocaleString()}</TableCell>

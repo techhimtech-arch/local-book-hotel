@@ -2,16 +2,22 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useHotelData } from '@/hooks/useHotelData';
-import { BedDouble, CalendarCheck, DollarSign, TrendingUp, LogIn, LogOut } from 'lucide-react';
+import { BedDouble, BedSingle, DollarSign, TrendingUp, LogIn, LogOut } from 'lucide-react';
 import { format, isToday, parseISO } from 'date-fns';
 
 const Dashboard = () => {
-  const { rooms, bookings, getGuestById, getRoomById } = useHotelData();
+  const { rooms, bookings, getGuestById, getRoomById, getAvailableBeds } = useHotelData();
 
   const stats = useMemo(() => {
     const totalRooms = rooms.length;
     const occupied = rooms.filter((r) => r.status === 'Occupied').length;
     const available = rooms.filter((r) => r.status === 'Available').length;
+
+    // Count total beds and available beds for dormitories
+    const dormRooms = rooms.filter((r) => r.type === 'Dormitory');
+    const totalDormBeds = dormRooms.reduce((s, r) => s + (r.totalBeds || 0), 0);
+    const availDormBeds = dormRooms.reduce((s, r) => s + getAvailableBeds(r.id).length, 0);
+
     const occupancyRate = totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0;
 
     const todayCheckIns = bookings.filter(
@@ -27,8 +33,8 @@ const Dashboard = () => {
       .filter((b) => b.status !== 'Cancelled' && parseISO(b.createdAt) >= monthStart)
       .reduce((sum, b) => sum + b.totalAmount, 0);
 
-    return { totalRooms, occupied, available, occupancyRate, todayCheckIns, todayCheckOuts, monthRevenue };
-  }, [rooms, bookings]);
+    return { totalRooms, occupied, available, occupancyRate, todayCheckIns, todayCheckOuts, monthRevenue, totalDormBeds, availDormBeds };
+  }, [rooms, bookings, getAvailableBeds]);
 
   return (
     <div className="space-y-6">
@@ -43,6 +49,12 @@ const Dashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalRooms}</div>
             <p className="text-xs text-muted-foreground">{stats.available} available · {stats.occupied} occupied</p>
+            {stats.totalDormBeds > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                <BedSingle className="inline h-3 w-3 mr-0.5" />
+                {stats.availDormBeds}/{stats.totalDormBeds} dorm beds free
+              </p>
+            )}
           </CardContent>
         </Card>
 

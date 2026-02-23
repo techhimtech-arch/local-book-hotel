@@ -34,12 +34,43 @@ export function useHotelData() {
     return Array.from({ length: room.totalBeds }, (_, i) => i + 1).filter((b) => !occupied.includes(b));
   };
 
+  // Get detailed bed status for a dormitory room
+  type BedInfo = {
+    bedNumber: number;
+    status: 'Available' | 'Confirmed' | 'Checked-in';
+    booking?: Booking;
+    guest?: Guest;
+  };
+
+  const getBedDetails = (roomId: string): BedInfo[] => {
+    const room = getRoomById(roomId);
+    if (!room || room.type !== 'Dormitory' || !room.totalBeds) return [];
+
+    const activeBookings = bookings.filter(
+      (b) => b.roomId === roomId && (b.status === 'Confirmed' || b.status === 'Checked-in') && b.bedNumber
+    );
+
+    return Array.from({ length: room.totalBeds }, (_, i) => {
+      const bed = i + 1;
+      const booking = activeBookings.find((b) => b.bedNumber === bed);
+      if (booking) {
+        return {
+          bedNumber: bed,
+          status: booking.status as 'Confirmed' | 'Checked-in',
+          booking,
+          guest: getGuestById(booking.guestId),
+        };
+      }
+      return { bedNumber: bed, status: 'Available' as const };
+    });
+  };
+
   return {
     rooms, guests, bookings,
     addRoom, updateRoom, deleteRoom,
     addGuest, updateGuest,
     addBooking, updateBooking,
     getGuestById, getRoomById,
-    getOccupiedBeds, getAvailableBeds,
+    getOccupiedBeds, getAvailableBeds, getBedDetails,
   };
 }

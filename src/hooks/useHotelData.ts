@@ -19,11 +19,27 @@ export function useHotelData() {
   const getGuestById = (id: string) => guests.find((g) => g.id === id);
   const getRoomById = (id: string) => rooms.find((r) => r.id === id);
 
+  // Get occupied bed numbers for a dormitory room (active bookings only)
+  const getOccupiedBeds = (roomId: string): number[] => {
+    return bookings
+      .filter((b) => b.roomId === roomId && (b.status === 'Confirmed' || b.status === 'Checked-in') && b.bedNumber)
+      .map((b) => b.bedNumber!);
+  };
+
+  // Get available bed numbers for a dormitory room
+  const getAvailableBeds = (roomId: string): number[] => {
+    const room = getRoomById(roomId);
+    if (!room || room.type !== 'Dormitory' || !room.totalBeds) return [];
+    const occupied = getOccupiedBeds(roomId);
+    return Array.from({ length: room.totalBeds }, (_, i) => i + 1).filter((b) => !occupied.includes(b));
+  };
+
   return {
     rooms, guests, bookings,
     addRoom, updateRoom, deleteRoom,
     addGuest, updateGuest,
     addBooking, updateBooking,
     getGuestById, getRoomById,
+    getOccupiedBeds, getAvailableBeds,
   };
 }

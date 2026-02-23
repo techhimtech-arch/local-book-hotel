@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useHotelData } from '@/hooks/useHotelData';
 import { Room, RoomType, RoomStatus } from '@/types/hotel';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronDown, BedSingle, LogIn, LogOut, User } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 const roomTypes: RoomType[] = ['Single', 'Double', 'Suite', 'Deluxe', 'Dormitory'];
 const roomStatuses: RoomStatus[] = ['Available', 'Occupied', 'Maintenance'];
@@ -20,13 +22,26 @@ const statusColor: Record<RoomStatus, 'default' | 'secondary' | 'destructive'> =
   Maintenance: 'destructive',
 };
 
+const bedStatusColor: Record<string, string> = {
+  Available: 'border-green-200 bg-green-50 text-green-700',
+  Confirmed: 'border-blue-200 bg-blue-50 text-blue-700',
+  'Checked-in': 'border-amber-200 bg-amber-50 text-amber-700',
+};
+
+const bedBadgeVariant: Record<string, 'default' | 'secondary' | 'outline'> = {
+  Available: 'outline',
+  Confirmed: 'default',
+  'Checked-in': 'secondary',
+};
+
 const emptyRoom: Omit<Room, 'id'> = { roomNumber: '', floor: 1, type: 'Single', pricePerNight: 0, status: 'Available' };
 
 const Rooms = () => {
-  const { rooms, addRoom, updateRoom, deleteRoom, getAvailableBeds, getOccupiedBeds } = useHotelData();
+  const { rooms, addRoom, updateRoom, deleteRoom, getAvailableBeds, getBedDetails, updateBooking } = useHotelData();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
   const [form, setForm] = useState<Omit<Room, 'id'>>(emptyRoom);
+  const [expandedDorm, setExpandedDorm] = useState<string | null>(null);
 
   const handleOpen = (room?: Room) => {
     if (room) {
@@ -51,6 +66,14 @@ const Rooms = () => {
       addRoom({ id: crypto.randomUUID(), ...roomData });
     }
     setOpen(false);
+  };
+
+  const handleBedCheckIn = (booking: any) => {
+    updateBooking({ ...booking, status: 'Checked-in' });
+  };
+
+  const handleBedCheckOut = (booking: any) => {
+    updateBooking({ ...booking, status: 'Checked-out' });
   };
 
   return (
@@ -126,23 +149,100 @@ const Rooms = () => {
               <TableBody>
                 {rooms.map((room) => {
                   const availBeds = room.type === 'Dormitory' ? getAvailableBeds(room.id).length : null;
+                  const isExpanded = expandedDorm === room.id;
+                  const bedDetails = room.type === 'Dormitory' ? getBedDetails(room.id) : [];
+
                   return (
-                    <TableRow key={room.id}>
-                      <TableCell className="font-medium">{room.roomNumber}</TableCell>
-                      <TableCell>{room.floor}</TableCell>
-                      <TableCell>{room.type}</TableCell>
-                      <TableCell>₹{room.pricePerNight.toLocaleString()}{room.type === 'Dormitory' ? '/bed' : ''}</TableCell>
-                      <TableCell>
-                        {room.type === 'Dormitory' ? (
-                          <span>{availBeds}/{room.totalBeds} free</span>
-                        ) : '—'}
-                      </TableCell>
-                      <TableCell><Badge variant={statusColor[room.status]}>{room.status}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpen(room)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteRoom(room.id)}><Trash2 className="h-4 w-4" /></Button>
-                      </TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow key={room.id} className={room.type === 'Dormitory' ? 'cursor-pointer' : ''} onClick={() => room.type === 'Dormitory' && setExpandedDorm(isExpanded ? null : room.id)}>
+                        <TableCell className="font-medium">
+                          {room.roomNumber}
+                          {room.type === 'Dormitory' && (
+                            <ChevronDown className={`inline ml-1 h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          )}
+                        </TableCell>
+                        <TableCell>{room.floor}</TableCell>
+                        <TableCell>{room.type}</TableCell>
+                        <TableCell>₹{room.pricePerNight.toLocaleString()}{room.type === 'Dormitory' ? '/bed' : ''}</TableCell>
+                        <TableCell>
+                          {room.type === 'Dormitory' ? (
+                            <span>{availBeds}/{room.totalBeds} free</span>
+                          ) : '—'}
+                        </TableCell>
+                        <TableCell><Badge variant={statusColor[room.status]}>{room.status}</Badge></TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" onClick={() => handleOpen(room)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteRoom(room.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Dormitory bed map */}
+                      {room.type === 'Dormitory' && isExpanded && (
+                        <TableRow key={`${room.id}-beds`}>
+                          <TableCell colSpan={7} className="bg-muted/30 p-4">
+                            <div className="mb-3 flex items-center gap-4">
+                              <h4 className="text-sm font-semibold">Bed Map — Room {room.roomNumber}</h4>
+                              <div className="flex gap-3 text-xs">
+                                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Available</span>
+                                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Confirmed</span>
+                                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Checked-in</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                              {bedDetails.map((bed) => (
+                                <div
+                                  key={bed.bedNumber}
+                                  className={`rounded-lg border-2 p-3 transition-colors ${bedStatusColor[bed.status]}`}
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1">
+                                      <BedSingle className="h-4 w-4" />
+                                      <span className="font-semibold text-sm">Bed #{bed.bedNumber}</span>
+                                    </div>
+                                    <Badge variant={bedBadgeVariant[bed.status]} className="text-[10px] px-1.5 py-0">
+                                      {bed.status}
+                                    </Badge>
+                                  </div>
+
+                                  {bed.guest && bed.booking && (
+                                    <div className="mt-2 space-y-1">
+                                      <p className="text-xs font-medium flex items-center gap-1">
+                                        <User className="h-3 w-3" /> {bed.guest.name}
+                                      </p>
+                                      <p className="text-[10px] opacity-75">
+                                        {format(parseISO(bed.booking.checkIn), 'dd MMM')} — {format(parseISO(bed.booking.checkOut), 'dd MMM')}
+                                      </p>
+                                      <div className="flex gap-1 mt-1">
+                                        {bed.booking.status === 'Confirmed' && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 text-[10px] px-2"
+                                            onClick={(e) => { e.stopPropagation(); handleBedCheckIn(bed.booking); }}
+                                          >
+                                            <LogIn className="h-3 w-3 mr-0.5" /> Check In
+                                          </Button>
+                                        )}
+                                        {bed.booking.status === 'Checked-in' && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 text-[10px] px-2"
+                                            onClick={(e) => { e.stopPropagation(); handleBedCheckOut(bed.booking); }}
+                                          >
+                                            <LogOut className="h-3 w-3 mr-0.5" /> Check Out
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   );
                 })}
               </TableBody>

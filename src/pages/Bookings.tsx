@@ -277,75 +277,82 @@ const Bookings = () => {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search by guest or room..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="Confirmed">Confirmed</SelectItem>
-            <SelectItem value="Checked-in">Checked-in</SelectItem>
-            <SelectItem value="Checked-out">Checked-out</SelectItem>
-            <SelectItem value="Cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
-      {filtered.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">No bookings found.</CardContent></Card>
+      {viewMode === 'calendar' ? (
+        <BookingCalendar bookings={bookings} getGuestById={getGuestById} getRoomById={getRoomById} />
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Guest</TableHead>
-                  <TableHead>Room</TableHead>
-                  <TableHead>Check-in</TableHead>
-                  <TableHead>Check-out</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((b) => {
-                  const guest = getGuestById(b.guestId);
-                  const room = getRoomById(b.roomId);
-                  return (
-                    <TableRow key={b.id}>
-                      <TableCell className="font-medium">{guest?.name || '—'}</TableCell>
-                      <TableCell>
-                        {room?.roomNumber || '—'}
-                        {b.bedNumber ? <span className="text-muted-foreground text-xs ml-1">(Bed #{b.bedNumber})</span> : ''}
-                      </TableCell>
-                      <TableCell>{format(parseISO(b.checkIn), 'dd MMM yyyy')}</TableCell>
-                      <TableCell>{format(parseISO(b.checkOut), 'dd MMM yyyy')}</TableCell>
-                      <TableCell>₹{b.totalAmount.toLocaleString()}</TableCell>
-                      <TableCell><Badge variant={statusVariant[b.status]}>{b.status}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1">
-                        {b.status === 'Confirmed' && (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => handleCheckIn(b)}><LogIn className="h-3 w-3 mr-1" />Check In</Button>
-                            <Button size="sm" variant="ghost" onClick={() => handleCancel(b)}>Cancel</Button>
-                          </>
-                        )}
-                        {b.status === 'Checked-in' && (
-                          <Button size="sm" variant="outline" onClick={() => handleCheckOut(b)}><LogOut className="h-3 w-3 mr-1" />Check Out</Button>
-                        )}
-                      </TableCell>
+        <>
+          <div className="flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Search by guest or room..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Confirmed">Confirmed</SelectItem>
+                <SelectItem value="Checked-in">Checked-in</SelectItem>
+                <SelectItem value="Checked-out">Checked-out</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {filtered.length === 0 ? (
+            <Card><CardContent className="py-10 text-center text-muted-foreground">No bookings found.</CardContent></Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Guest</TableHead>
+                      <TableHead>Room</TableHead>
+                      <TableHead>Check-in</TableHead>
+                      <TableHead>Check-out</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((b) => {
+                      const guest = getGuestById(b.guestId);
+                      const room = getRoomById(b.roomId);
+                      return (
+                        <TableRow key={b.id}>
+                          <TableCell className="font-medium">{guest?.name || '—'}</TableCell>
+                          <TableCell>
+                            {room?.roomNumber || '—'}
+                            {b.bedNumber ? <span className="text-muted-foreground text-xs ml-1">(Bed #{b.bedNumber})</span> : ''}
+                          </TableCell>
+                          <TableCell>{format(parseISO(b.checkIn), 'dd MMM yyyy')}</TableCell>
+                          <TableCell>{format(parseISO(b.checkOut), 'dd MMM yyyy')}</TableCell>
+                          <TableCell>₹{b.totalAmount.toLocaleString()}</TableCell>
+                          <TableCell><Badge variant={statusVariant[b.status]}>{b.status}</Badge></TableCell>
+                          <TableCell className="text-right space-x-1">
+                            {b.status === 'Confirmed' && (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => handleCheckIn(b)}><LogIn className="h-3 w-3 mr-1" />Check In</Button>
+                                <Button size="sm" variant="ghost" onClick={() => handleCancel(b)}>Cancel</Button>
+                              </>
+                            )}
+                            {b.status === 'Checked-in' && (
+                              <Button size="sm" variant="outline" onClick={() => handleCheckOut(b)}><LogOut className="h-3 w-3 mr-1" />Check Out</Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );

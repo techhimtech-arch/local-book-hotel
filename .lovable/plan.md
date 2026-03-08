@@ -1,45 +1,34 @@
 
-# Hotel Booking Manager — Offline Installable App
 
-A simple, clean hotel management app that installs on your system from the browser and stores all data locally — no server, no deployment needed.
+## Plan: Add Calendar View for Bookings
 
-## Core Features
+### What We'll Build
+A toggle-able calendar view on the Bookings page that shows check-ins and check-outs visually on a monthly grid. Each day cell will display colored indicators for bookings — green dots for check-ins, red dots for check-outs, and blue for ongoing stays.
 
-### 1. Dashboard
-- Overview of today's check-ins and check-outs
-- Total rooms, occupied rooms, available rooms at a glance
-- Revenue summary (daily/weekly/monthly)
-- Occupancy rate indicator
+### Implementation
 
-### 2. Room Management
-- Add, edit, and delete rooms
-- Set room types (Single, Double, Suite, etc.)
-- Set pricing per room type
-- Room status: Available, Occupied, Maintenance
-- Room number and floor assignment
+**1. Add view toggle to Bookings page (`src/pages/Bookings.tsx`)**
+- Add a `List | Calendar` toggle button group next to the existing header
+- When "Calendar" is selected, render the new `BookingCalendar` component instead of the table
 
-### 3. Booking Management
-- Create new bookings with guest details, room selection, check-in/check-out dates
-- View all bookings in a calendar or list view
-- Booking status: Confirmed, Checked-in, Checked-out, Cancelled
-- Search and filter bookings by date, guest name, or status
-- Quick check-in and check-out actions
+**2. Create `src/components/BookingCalendar.tsx`**
+- Build a custom monthly calendar grid (not using DayPicker — we need custom cell content)
+- Use `date-fns` (already installed) for month navigation, day iteration, `isSameDay`, `isWithinInterval`
+- Each day cell shows:
+  - **Check-in indicators**: Green badge with guest name for bookings starting that day
+  - **Check-out indicators**: Red/orange badge with guest name for bookings ending that day
+  - **Ongoing stay**: Subtle background highlight for days within a booking range
+- Month navigation with prev/next arrows
+- Click on a booking badge to see details (guest, room, status) in a popover
+- Color-code by booking status (Confirmed = blue, Checked-in = green, Cancelled = gray strikethrough)
 
-### 4. Guest Records
-- Save guest name, phone number, ID details
-- View guest booking history
-- Search guests by name or phone
+**3. Wire up data**
+- Reuse `useHotelData()` — iterate over `bookings` array, parse `checkIn`/`checkOut` ISO dates
+- Group bookings by date for efficient rendering
+- Show room number + bed number (for dormitory) alongside guest name
 
-### 5. Reports
-- Occupancy report by date range
-- Revenue report with simple charts
-- Room-wise booking summary
+### Technical Notes
+- No new dependencies needed — `date-fns` handles all date logic
+- Custom grid built with Tailwind CSS (`grid grid-cols-7`)
+- Responsive: on mobile, show abbreviated day names and smaller badges
 
-## Technical Approach
-- **PWA (Progressive Web App)** — installable from browser, works offline
-- **localStorage** for all data storage — no internet or server needed
-- Simple & clean design with easy navigation sidebar
-- All data stays on the device
-
-## How to Install
-Once built, you simply open the app URL in Chrome, click "Install" from the browser menu, and it becomes a standalone app on your system — just like a desktop application.

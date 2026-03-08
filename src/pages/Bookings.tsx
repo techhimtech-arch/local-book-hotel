@@ -27,6 +27,7 @@ const Bookings = () => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   // Guest fields
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);

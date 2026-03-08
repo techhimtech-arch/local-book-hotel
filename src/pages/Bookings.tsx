@@ -161,8 +161,15 @@ const Bookings = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Bookings</h1>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger asChild>
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'calendar')}>
+            <ToggleGroupItem value="list" aria-label="List view"><List className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="calendar" aria-label="Calendar view"><CalendarDays className="h-4 w-4" /></ToggleGroupItem>
+          </ToggleGroup>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-1" /> New Booking</Button>
+            </DialogTrigger>
             <Button><Plus className="h-4 w-4 mr-1" /> New Booking</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">

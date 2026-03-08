@@ -170,8 +170,6 @@ const Bookings = () => {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-1" /> New Booking</Button>
             </DialogTrigger>
-            <Button><Plus className="h-4 w-4 mr-1" /> New Booking</Button>
-          </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Create Booking</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-4">

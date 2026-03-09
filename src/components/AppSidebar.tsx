@@ -1,5 +1,6 @@
-import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel, HardDriveDownload } from 'lucide-react';
+import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel, HardDriveDownload, LogOut } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar,
   SidebarContent,
@@ -9,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 
 const navItems = [
@@ -21,6 +23,8 @@ const navItems = [
 ];
 
 export function AppSidebar() {
+  const { signOut, user } = useAuth();
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
@@ -47,6 +51,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Sign Out" onClick={signOut} className="text-muted-foreground hover:text-destructive">
+              <LogOut className="h-4 w-4" />
+              <span>{user?.email ?? 'Sign Out'}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

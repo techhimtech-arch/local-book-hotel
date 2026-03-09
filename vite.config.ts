@@ -19,16 +19,25 @@ export default defineConfig(({ mode }) => ({
       "react",
       "react-dom",
       "react-dom/client",
+      "react/jsx-runtime",
       "@tanstack/react-query",
       "@radix-ui/react-tooltip",
+      "@radix-ui/react-toast",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-select",
+      "@radix-ui/react-dropdown-menu",
     ],
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react-dom/client"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react-dom/client",
+    ],
   },
 }));

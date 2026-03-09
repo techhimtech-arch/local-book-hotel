@@ -1,4 +1,4 @@
-import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel } from 'lucide-react';
+import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel, HardDriveDownload } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar,
@@ -17,6 +17,7 @@ const navItems = [
   { title: 'Bookings', url: '/bookings', icon: CalendarCheck },
   { title: 'Guests', url: '/guests', icon: Users },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
+  { title: 'Backup', url: '/backup', icon: HardDriveDownload },
 ];
 
 export function AppSidebar() {

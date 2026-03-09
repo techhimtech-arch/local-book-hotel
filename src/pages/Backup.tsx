@@ -52,7 +52,7 @@ const Backup = () => {
         toast({ title: 'Data restored!', description: `${restored} data set(s) imported. Reloading...` });
         setTimeout(() => window.location.reload(), 1000);
       } catch {
-        toast({ title: 'Import failed', description: 'Could not parse the file. Make sure it's a valid JSON backup.', variant: 'destructive' });
+        toast({ title: 'Import failed', description: "Could not parse the file. Make sure it's a valid JSON backup.", variant: 'destructive' });
       }
     };
     reader.readAsText(file);

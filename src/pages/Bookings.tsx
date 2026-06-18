@@ -40,23 +40,23 @@ const Bookings = () => {
   const [guestSearchQuery, setGuestSearchQuery] = useState('');
   const [showGuestSuggestions, setShowGuestSuggestions] = useState(false);
 
-  const [roomId, setRoomId] = useState('');
-  const [bedNumber, setBedNumber] = useState<string>('');
+  type RoomLine = { roomId: string; bedNumber: string };
+  const [lines, setLines] = useState<RoomLine[]>([{ roomId: '', bedNumber: '' }]);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
 
-  const selectedRoom = roomId ? getRoomById(roomId) : null;
-  const isDormitory = selectedRoom?.type === 'Dormitory';
-  const availableBeds = isDormitory ? getAvailableBeds(roomId) : [];
+  const updateLine = (i: number, patch: Partial<RoomLine>) => {
+    setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  };
+  const addLine = () => setLines((prev) => [...prev, { roomId: '', bedNumber: '' }]);
+  const removeLine = (i: number) => setLines((prev) => prev.filter((_, idx) => idx !== i));
 
-  // Rooms available for booking: Available rooms + Dormitory rooms with free beds
   const bookableRooms = rooms.filter((r) => {
     if (r.status === 'Maintenance') return false;
     if (r.type === 'Dormitory') return getAvailableBeds(r.id).length > 0;
     return r.status === 'Available';
   });
 
-  // Guest autofill suggestions
   const guestSuggestions = useMemo(() => {
     if (!guestSearchQuery || guestSearchQuery.length < 2) return [];
     const q = guestSearchQuery.toLowerCase();
@@ -86,22 +86,31 @@ const Bookings = () => {
   const resetForm = () => {
     clearGuestSelection();
     setGuestSearchQuery('');
-    setRoomId('');
-    setBedNumber('');
+    setLines([{ roomId: '', bedNumber: '' }]);
     setCheckIn('');
     setCheckOut('');
   };
 
-  const handleCreate = () => {
-    if (!guestName || !roomId || !checkIn || !checkOut) return;
-    const room = getRoomById(roomId);
-    if (!room) return;
+  // Guest's past booking history
+  const guestHistory = useMemo(() => {
+    if (!selectedGuestId) return null;
+    const past = bookings.filter((b) => b.guestId === selectedGuestId);
+    if (past.length === 0) return null;
+    const totalSpent = past.reduce((s, b) => s + b.totalAmount, 0);
+    return { count: past.length, totalSpent, lastStay: past[past.length - 1] };
+  }, [selectedGuestId, bookings]);
 
+  const handleCreate = () => {
+    if (!guestName || !checkIn || !checkOut) return;
     const days = differenceInDays(parseISO(checkOut), parseISO(checkIn));
     if (days <= 0) return;
 
-    // Dormitory requires bed selection
-    if (isDormitory && !bedNumber) return;
+    const validLines = lines.filter((l) => l.roomId);
+    if (validLines.length === 0) return;
+    for (const l of validLines) {
+      const r = getRoomById(l.roomId);
+      if (r?.type === 'Dormitory' && !l.bedNumber) return;
+    }
 
     let guestId = selectedGuestId;
     if (!guestId) {
@@ -110,19 +119,23 @@ const Bookings = () => {
       guestId = guest.id;
     }
 
-    const pricePerUnit = room.pricePerNight; // per bed for dormitory, per room otherwise
-    const booking: Booking = {
-      id: crypto.randomUUID(),
-      guestId,
-      roomId,
-      checkIn,
-      checkOut,
-      status: 'Confirmed',
-      totalAmount: days * pricePerUnit,
-      createdAt: new Date().toISOString(),
-      ...(isDormitory ? { bedNumber: Number(bedNumber) } : {}),
-    };
-    addBooking(booking);
+    const groupId = validLines.length > 1 ? crypto.randomUUID() : undefined;
+    validLines.forEach((l) => {
+      const room = getRoomById(l.roomId)!;
+      const booking: Booking = {
+        id: crypto.randomUUID(),
+        guestId: guestId!,
+        roomId: l.roomId,
+        checkIn,
+        checkOut,
+        status: 'Confirmed',
+        totalAmount: days * room.pricePerNight,
+        createdAt: new Date().toISOString(),
+        ...(room.type === 'Dormitory' ? { bedNumber: Number(l.bedNumber) } : {}),
+        ...(groupId ? { groupId } : {}),
+      };
+      addBooking(booking);
+    });
     setOpen(false);
     resetForm();
   };

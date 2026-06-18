@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useHotelData } from '@/hooks/useHotelData';
 import { Booking, BookingStatus, Guest } from '@/types/hotel';
-import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays } from 'lucide-react';
+import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays, Trash2, FileText } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { CheckInQRButton } from '@/components/CheckInQRButton';
+import { PaymentDialog } from '@/components/PaymentDialog';
+import { downloadInvoice, getPaidAmount, getPaymentStatus, ensureInvoiceNumber } from '@/lib/invoice';
 
 const statusVariant: Record<BookingStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   Confirmed: 'default',

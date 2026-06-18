@@ -15,6 +15,7 @@ import Guests from "./pages/Guests";
 import Reports from "./pages/Reports";
 import Backup from "./pages/Backup";
 import NotFound from "./pages/NotFound";
+import QRCheckIn from "./pages/QRCheckIn";
 
 const queryClient = new QueryClient();
 

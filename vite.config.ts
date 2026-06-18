@@ -19,6 +19,13 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime", "@tanstack/react-query"],
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "@tanstack/react-query",
+      "@radix-ui/react-tooltip",
+    ],
   },
 }));

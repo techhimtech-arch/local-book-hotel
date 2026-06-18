@@ -15,6 +15,7 @@ import Guests from "./pages/Guests";
 import Reports from "./pages/Reports";
 import Backup from "./pages/Backup";
 import NotFound from "./pages/NotFound";
+import QRCheckIn from "./pages/QRCheckIn";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Routes>
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/checkin/:bookingId" element={<QRCheckIn />} />
             <Route
               path="/*"
               element={

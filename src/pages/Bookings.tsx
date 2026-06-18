@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useHotelData } from '@/hooks/useHotelData';
 import { Booking, BookingStatus, Guest } from '@/types/hotel';
-import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays } from 'lucide-react';
+import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays, Trash2, FileText } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { CheckInQRButton } from '@/components/CheckInQRButton';
+import { PaymentDialog } from '@/components/PaymentDialog';
+import { downloadInvoice, getPaidAmount, getPaymentStatus, ensureInvoiceNumber } from '@/lib/invoice';
 
 const statusVariant: Record<BookingStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   Confirmed: 'default',
@@ -38,23 +40,23 @@ const Bookings = () => {
   const [guestSearchQuery, setGuestSearchQuery] = useState('');
   const [showGuestSuggestions, setShowGuestSuggestions] = useState(false);
 
-  const [roomId, setRoomId] = useState('');
-  const [bedNumber, setBedNumber] = useState<string>('');
+  type RoomLine = { roomId: string; bedNumber: string };
+  const [lines, setLines] = useState<RoomLine[]>([{ roomId: '', bedNumber: '' }]);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
 
-  const selectedRoom = roomId ? getRoomById(roomId) : null;
-  const isDormitory = selectedRoom?.type === 'Dormitory';
-  const availableBeds = isDormitory ? getAvailableBeds(roomId) : [];
+  const updateLine = (i: number, patch: Partial<RoomLine>) => {
+    setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  };
+  const addLine = () => setLines((prev) => [...prev, { roomId: '', bedNumber: '' }]);
+  const removeLine = (i: number) => setLines((prev) => prev.filter((_, idx) => idx !== i));
 
-  // Rooms available for booking: Available rooms + Dormitory rooms with free beds
   const bookableRooms = rooms.filter((r) => {
     if (r.status === 'Maintenance') return false;
     if (r.type === 'Dormitory') return getAvailableBeds(r.id).length > 0;
     return r.status === 'Available';
   });
 
-  // Guest autofill suggestions
   const guestSuggestions = useMemo(() => {
     if (!guestSearchQuery || guestSearchQuery.length < 2) return [];
     const q = guestSearchQuery.toLowerCase();
@@ -84,22 +86,31 @@ const Bookings = () => {
   const resetForm = () => {
     clearGuestSelection();
     setGuestSearchQuery('');
-    setRoomId('');
-    setBedNumber('');
+    setLines([{ roomId: '', bedNumber: '' }]);
     setCheckIn('');
     setCheckOut('');
   };
 
-  const handleCreate = () => {
-    if (!guestName || !roomId || !checkIn || !checkOut) return;
-    const room = getRoomById(roomId);
-    if (!room) return;
+  // Guest's past booking history
+  const guestHistory = useMemo(() => {
+    if (!selectedGuestId) return null;
+    const past = bookings.filter((b) => b.guestId === selectedGuestId);
+    if (past.length === 0) return null;
+    const totalSpent = past.reduce((s, b) => s + b.totalAmount, 0);
+    return { count: past.length, totalSpent, lastStay: past[past.length - 1] };
+  }, [selectedGuestId, bookings]);
 
+  const handleCreate = () => {
+    if (!guestName || !checkIn || !checkOut) return;
     const days = differenceInDays(parseISO(checkOut), parseISO(checkIn));
     if (days <= 0) return;
 
-    // Dormitory requires bed selection
-    if (isDormitory && !bedNumber) return;
+    const validLines = lines.filter((l) => l.roomId);
+    if (validLines.length === 0) return;
+    for (const l of validLines) {
+      const r = getRoomById(l.roomId);
+      if (r?.type === 'Dormitory' && !l.bedNumber) return;
+    }
 
     let guestId = selectedGuestId;
     if (!guestId) {
@@ -108,19 +119,23 @@ const Bookings = () => {
       guestId = guest.id;
     }
 
-    const pricePerUnit = room.pricePerNight; // per bed for dormitory, per room otherwise
-    const booking: Booking = {
-      id: crypto.randomUUID(),
-      guestId,
-      roomId,
-      checkIn,
-      checkOut,
-      status: 'Confirmed',
-      totalAmount: days * pricePerUnit,
-      createdAt: new Date().toISOString(),
-      ...(isDormitory ? { bedNumber: Number(bedNumber) } : {}),
-    };
-    addBooking(booking);
+    const groupId = validLines.length > 1 ? crypto.randomUUID() : undefined;
+    validLines.forEach((l) => {
+      const room = getRoomById(l.roomId)!;
+      const booking: Booking = {
+        id: crypto.randomUUID(),
+        guestId: guestId!,
+        roomId: l.roomId,
+        checkIn,
+        checkOut,
+        status: 'Confirmed',
+        totalAmount: days * room.pricePerNight,
+        createdAt: new Date().toISOString(),
+        ...(room.type === 'Dormitory' ? { bedNumber: Number(l.bedNumber) } : {}),
+        ...(groupId ? { groupId } : {}),
+      };
+      addBooking(booking);
+    });
     setOpen(false);
     resetForm();
   };
@@ -231,37 +246,56 @@ const Bookings = () => {
                 </>
               )}
 
-              <div className="space-y-2">
-                <Label>Room</Label>
-                <Select value={roomId} onValueChange={(v) => { setRoomId(v); setBedNumber(''); }}>
-                  <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
-                  <SelectContent>
-                    {bookableRooms.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        Room {r.roomNumber} — {r.type}
-                        {r.type === 'Dormitory'
-                          ? ` (${getAvailableBeds(r.id).length} beds free · ₹${r.pricePerNight}/bed/night)`
-                          : ` (₹${r.pricePerNight}/night)`
-                        }
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {isDormitory && (
-                <div className="space-y-2">
-                  <Label>Select Bed</Label>
-                  <Select value={bedNumber} onValueChange={setBedNumber}>
-                    <SelectTrigger><SelectValue placeholder="Choose bed number" /></SelectTrigger>
-                    <SelectContent>
-                      {availableBeds.map((b) => (
-                        <SelectItem key={b} value={String(b)}>Bed #{b}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {guestHistory && (
+                <div className="rounded-md border bg-accent/30 px-3 py-2 text-xs">
+                  <span className="font-medium">Returning guest</span> · {guestHistory.count} past booking{guestHistory.count > 1 ? 's' : ''} · Spent ₹{guestHistory.totalSpent.toLocaleString()}
                 </div>
               )}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Rooms</Label>
+                  <Button type="button" size="sm" variant="ghost" onClick={addLine}><Plus className="h-3 w-3 mr-1" />Add Room</Button>
+                </div>
+                {lines.map((line, i) => {
+                  const r = line.roomId ? getRoomById(line.roomId) : null;
+                  const isDorm = r?.type === 'Dormitory';
+                  const beds = isDorm ? getAvailableBeds(line.roomId) : [];
+                  return (
+                    <div key={i} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-2">
+                        <Select value={line.roomId} onValueChange={(v) => updateLine(i, { roomId: v, bedNumber: '' })}>
+                          <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                          <SelectContent>
+                            {bookableRooms.map((rm) => (
+                              <SelectItem key={rm.id} value={rm.id}>
+                                Room {rm.roomNumber} — {rm.type}
+                                {rm.type === 'Dormitory'
+                                  ? ` (${getAvailableBeds(rm.id).length} beds · ₹${rm.pricePerNight}/bed)`
+                                  : ` (₹${rm.pricePerNight}/night)`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isDorm && (
+                          <Select value={line.bedNumber} onValueChange={(v) => updateLine(i, { bedNumber: v })}>
+                            <SelectTrigger><SelectValue placeholder="Choose bed" /></SelectTrigger>
+                            <SelectContent>
+                              {beds.map((b) => <SelectItem key={b} value={String(b)}>Bed #{b}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      {lines.length > 1 && (
+                        <Button type="button" size="icon" variant="ghost" onClick={() => removeLine(i)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -314,6 +348,7 @@ const Bookings = () => {
                       <TableHead>Check-in</TableHead>
                       <TableHead>Check-out</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Payment</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -322,9 +357,17 @@ const Bookings = () => {
                     {filtered.map((b) => {
                       const guest = getGuestById(b.guestId);
                       const room = getRoomById(b.roomId);
+                      const payStatus = getPaymentStatus(b);
+                      const paid = getPaidAmount(b);
+                      const groupItems = b.groupId
+                        ? bookings.filter((x) => x.groupId === b.groupId).map((x) => ({ booking: x, room: getRoomById(x.roomId) }))
+                        : null;
                       return (
                         <TableRow key={b.id}>
-                          <TableCell className="font-medium">{guest?.name || '—'}</TableCell>
+                          <TableCell className="font-medium">
+                            {guest?.name || '—'}
+                            {b.groupId && <Badge variant="outline" className="ml-2 text-xs">Group</Badge>}
+                          </TableCell>
                           <TableCell>
                             {room?.roomNumber || '—'}
                             {b.bedNumber ? <span className="text-muted-foreground text-xs ml-1">(Bed #{b.bedNumber})</span> : ''}
@@ -332,8 +375,28 @@ const Bookings = () => {
                           <TableCell>{format(parseISO(b.checkIn), 'dd MMM yyyy')}</TableCell>
                           <TableCell>{format(parseISO(b.checkOut), 'dd MMM yyyy')}</TableCell>
                           <TableCell>₹{b.totalAmount.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Badge variant={payStatus === 'Paid' ? 'default' : payStatus === 'Partial' ? 'secondary' : 'destructive'}>
+                              {payStatus}
+                            </Badge>
+                            <div className="text-xs text-muted-foreground mt-0.5">₹{paid.toLocaleString()} / ₹{b.totalAmount.toLocaleString()}</div>
+                          </TableCell>
                           <TableCell><Badge variant={statusVariant[b.status]}>{b.status}</Badge></TableCell>
-                          <TableCell className="text-right space-x-1">
+                          <TableCell className="text-right space-x-1 whitespace-nowrap">
+                            <PaymentDialog booking={b} onUpdate={updateBooking} />
+                            <CheckInQRButton bookingId={b.id} guestName={guest?.name} />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Download Invoice"
+                              onClick={() => {
+                                const withInv = b.invoiceNumber ? b : { ...b, invoiceNumber: ensureInvoiceNumber(b) };
+                                if (!b.invoiceNumber) updateBooking(withInv);
+                                downloadInvoice(withInv, guest, room, groupItems);
+                              }}
+                            >
+                              <FileText className="h-3 w-3" />
+                            </Button>
                             {b.status === 'Confirmed' && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => handleCheckIn(b)}><LogIn className="h-3 w-3 mr-1" />Check In</Button>

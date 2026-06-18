@@ -20,6 +20,16 @@ export interface Guest {
   idNumber: string;
 }
 
+export type PaymentMethod = 'Cash' | 'UPI' | 'Card' | 'Bank Transfer' | 'Other';
+
+export interface Payment {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  date: string; // ISO
+  note?: string;
+}
+
 export interface Booking {
   id: string;
   guestId: string;
@@ -30,4 +40,7 @@ export interface Booking {
   totalAmount: number;
   createdAt: string;
   bedNumber?: number; // only for dormitory bookings
+  payments?: Payment[];
+  groupId?: string; // links multi-room bookings together
+  invoiceNumber?: string;
 }

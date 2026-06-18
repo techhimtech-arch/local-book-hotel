@@ -246,37 +246,56 @@ const Bookings = () => {
                 </>
               )}
 
-              <div className="space-y-2">
-                <Label>Room</Label>
-                <Select value={roomId} onValueChange={(v) => { setRoomId(v); setBedNumber(''); }}>
-                  <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
-                  <SelectContent>
-                    {bookableRooms.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        Room {r.roomNumber} — {r.type}
-                        {r.type === 'Dormitory'
-                          ? ` (${getAvailableBeds(r.id).length} beds free · ₹${r.pricePerNight}/bed/night)`
-                          : ` (₹${r.pricePerNight}/night)`
-                        }
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {isDormitory && (
-                <div className="space-y-2">
-                  <Label>Select Bed</Label>
-                  <Select value={bedNumber} onValueChange={setBedNumber}>
-                    <SelectTrigger><SelectValue placeholder="Choose bed number" /></SelectTrigger>
-                    <SelectContent>
-                      {availableBeds.map((b) => (
-                        <SelectItem key={b} value={String(b)}>Bed #{b}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {guestHistory && (
+                <div className="rounded-md border bg-accent/30 px-3 py-2 text-xs">
+                  <span className="font-medium">Returning guest</span> · {guestHistory.count} past booking{guestHistory.count > 1 ? 's' : ''} · Spent ₹{guestHistory.totalSpent.toLocaleString()}
                 </div>
               )}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Rooms</Label>
+                  <Button type="button" size="sm" variant="ghost" onClick={addLine}><Plus className="h-3 w-3 mr-1" />Add Room</Button>
+                </div>
+                {lines.map((line, i) => {
+                  const r = line.roomId ? getRoomById(line.roomId) : null;
+                  const isDorm = r?.type === 'Dormitory';
+                  const beds = isDorm ? getAvailableBeds(line.roomId) : [];
+                  return (
+                    <div key={i} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-2">
+                        <Select value={line.roomId} onValueChange={(v) => updateLine(i, { roomId: v, bedNumber: '' })}>
+                          <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                          <SelectContent>
+                            {bookableRooms.map((rm) => (
+                              <SelectItem key={rm.id} value={rm.id}>
+                                Room {rm.roomNumber} — {rm.type}
+                                {rm.type === 'Dormitory'
+                                  ? ` (${getAvailableBeds(rm.id).length} beds · ₹${rm.pricePerNight}/bed)`
+                                  : ` (₹${rm.pricePerNight}/night)`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isDorm && (
+                          <Select value={line.bedNumber} onValueChange={(v) => updateLine(i, { bedNumber: v })}>
+                            <SelectTrigger><SelectValue placeholder="Choose bed" /></SelectTrigger>
+                            <SelectContent>
+                              {beds.map((b) => <SelectItem key={b} value={String(b)}>Bed #{b}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      {lines.length > 1 && (
+                        <Button type="button" size="icon" variant="ghost" onClick={() => removeLine(i)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

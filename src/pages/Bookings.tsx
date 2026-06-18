@@ -348,6 +348,7 @@ const Bookings = () => {
                       <TableHead>Check-in</TableHead>
                       <TableHead>Check-out</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Payment</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -356,9 +357,17 @@ const Bookings = () => {
                     {filtered.map((b) => {
                       const guest = getGuestById(b.guestId);
                       const room = getRoomById(b.roomId);
+                      const payStatus = getPaymentStatus(b);
+                      const paid = getPaidAmount(b);
+                      const groupItems = b.groupId
+                        ? bookings.filter((x) => x.groupId === b.groupId).map((x) => ({ booking: x, room: getRoomById(x.roomId) }))
+                        : null;
                       return (
                         <TableRow key={b.id}>
-                          <TableCell className="font-medium">{guest?.name || '—'}</TableCell>
+                          <TableCell className="font-medium">
+                            {guest?.name || '—'}
+                            {b.groupId && <Badge variant="outline" className="ml-2 text-xs">Group</Badge>}
+                          </TableCell>
                           <TableCell>
                             {room?.roomNumber || '—'}
                             {b.bedNumber ? <span className="text-muted-foreground text-xs ml-1">(Bed #{b.bedNumber})</span> : ''}
@@ -366,8 +375,28 @@ const Bookings = () => {
                           <TableCell>{format(parseISO(b.checkIn), 'dd MMM yyyy')}</TableCell>
                           <TableCell>{format(parseISO(b.checkOut), 'dd MMM yyyy')}</TableCell>
                           <TableCell>₹{b.totalAmount.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Badge variant={payStatus === 'Paid' ? 'default' : payStatus === 'Partial' ? 'secondary' : 'destructive'}>
+                              {payStatus}
+                            </Badge>
+                            <div className="text-xs text-muted-foreground mt-0.5">₹{paid.toLocaleString()} / ₹{b.totalAmount.toLocaleString()}</div>
+                          </TableCell>
                           <TableCell><Badge variant={statusVariant[b.status]}>{b.status}</Badge></TableCell>
-                          <TableCell className="text-right space-x-1">
+                          <TableCell className="text-right space-x-1 whitespace-nowrap">
+                            <PaymentDialog booking={b} onUpdate={updateBooking} />
+                            <CheckInQRButton bookingId={b.id} guestName={guest?.name} />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Download Invoice"
+                              onClick={() => {
+                                const withInv = b.invoiceNumber ? b : { ...b, invoiceNumber: ensureInvoiceNumber(b) };
+                                if (!b.invoiceNumber) updateBooking(withInv);
+                                downloadInvoice(withInv, guest, room, groupItems);
+                              }}
+                            >
+                              <FileText className="h-3 w-3" />
+                            </Button>
                             {b.status === 'Confirmed' && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => handleCheckIn(b)}><LogIn className="h-3 w-3 mr-1" />Check In</Button>

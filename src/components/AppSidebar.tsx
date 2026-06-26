@@ -1,4 +1,4 @@
-import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel, HardDriveDownload, LogOut } from 'lucide-react';
+import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel, HardDriveDownload, LogOut, Receipt } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {

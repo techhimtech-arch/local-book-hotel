@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-const STORAGE_KEYS = ['hotel_rooms', 'hotel_guests', 'hotel_bookings'];
+const STORAGE_KEYS = ['hotel_rooms', 'hotel_guests', 'hotel_bookings', 'hotel_expenses'];
 
 const Backup = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);

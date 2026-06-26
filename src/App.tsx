@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Rooms from "./pages/Rooms";
 import Bookings from "./pages/Bookings";
 import Guests from "./pages/Guests";
+import Expenses from "./pages/Expenses";
 import Reports from "./pages/Reports";
 import Backup from "./pages/Backup";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
                       <Route path="/rooms" element={<Rooms />} />
                       <Route path="/bookings" element={<Bookings />} />
                       <Route path="/guests" element={<Guests />} />
+                      <Route path="/expenses" element={<Expenses />} />
                       <Route path="/reports" element={<Reports />} />
                       <Route path="/backup" element={<Backup />} />
                       <Route path="*" element={<NotFound />} />

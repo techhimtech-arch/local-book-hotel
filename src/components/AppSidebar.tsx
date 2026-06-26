@@ -1,4 +1,4 @@
-import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel, HardDriveDownload, LogOut } from 'lucide-react';
+import { LayoutDashboard, BedDouble, CalendarCheck, Users, BarChart3, Hotel, HardDriveDownload, LogOut, Receipt } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -18,6 +18,7 @@ const navItems = [
   { title: 'Rooms', url: '/rooms', icon: BedDouble },
   { title: 'Bookings', url: '/bookings', icon: CalendarCheck },
   { title: 'Guests', url: '/guests', icon: Users },
+  { title: 'Expenses', url: '/expenses', icon: Receipt },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Backup', url: '/backup', icon: HardDriveDownload },
 ];

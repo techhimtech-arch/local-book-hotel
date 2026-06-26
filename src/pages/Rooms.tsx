@@ -7,10 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useHotelData } from '@/hooks/useHotelData';
-import { Room, RoomType, RoomStatus } from '@/types/hotel';
-import { Plus, Pencil, Trash2, ChevronDown, BedSingle, LogIn, LogOut, User } from 'lucide-react';
+import { Room, RoomType, RoomStatus, HousekeepingStatus } from '@/types/hotel';
+import { Plus, Pencil, Trash2, ChevronDown, BedSingle, LogIn, LogOut, User, Sparkles, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const roomTypes: RoomType[] = ['Single', 'Double', 'Suite', 'Deluxe', 'Dormitory'];
@@ -20,6 +19,13 @@ const statusColor: Record<RoomStatus, 'default' | 'secondary' | 'destructive'> =
   Available: 'default',
   Occupied: 'secondary',
   Maintenance: 'destructive',
+};
+
+const hkStatusConfig: Record<HousekeepingStatus, { label: string; color: string; icon: typeof Sparkles }> = {
+  Clean: { label: 'Clean', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
+  Dirty: { label: 'Dirty', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: AlertTriangle },
+  Cleaning: { label: 'Cleaning', color: 'bg-sky-100 text-sky-700 border-sky-200', icon: Sparkles },
+  Inspected: { label: 'Inspected', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: CheckCircle2 },
 };
 
 const bedStatusColor: Record<string, string> = {
@@ -46,12 +52,29 @@ const Rooms = () => {
   const handleOpen = (room?: Room) => {
     if (room) {
       setEditing(room);
-      setForm({ roomNumber: room.roomNumber, floor: room.floor, type: room.type, pricePerNight: room.pricePerNight, status: room.status, totalBeds: room.totalBeds });
+      setForm({
+        roomNumber: room.roomNumber,
+        floor: room.floor,
+        type: room.type,
+        pricePerNight: room.pricePerNight,
+        status: room.status,
+        totalBeds: room.totalBeds,
+        housekeepingStatus: room.housekeepingStatus,
+        notes: room.notes,
+      });
     } else {
       setEditing(null);
       setForm(emptyRoom);
     }
     setOpen(true);
+  };
+
+  const cycleHousekeeping = (room: Room) => {
+    const order: HousekeepingStatus[] = ['Clean', 'Dirty', 'Cleaning', 'Inspected'];
+    const current = room.housekeepingStatus || 'Clean';
+    const nextIndex = (order.indexOf(current) + 1) % order.length;
+    const next = order[nextIndex];
+    updateRoom({ ...room, housekeepingStatus: next, lastCleanedAt: next === 'Clean' ? new Date().toISOString() : room.lastCleanedAt });
   };
 
   const handleSave = () => {
@@ -123,6 +146,21 @@ const Rooms = () => {
                   <SelectContent>{roomStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Housekeeping Status</Label>
+                <Select value={form.housekeepingStatus || 'Clean'} onValueChange={(v) => setForm({ ...form, housekeepingStatus: v as HousekeepingStatus })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['Clean', 'Dirty', 'Cleaning', 'Inspected'] as HousekeepingStatus[]).map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Room Notes (optional)</Label>
+                <Input value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="e.g. AC needs service, newly renovated..." />
+              </div>
               <Button onClick={handleSave}>{editing ? 'Update' : 'Add'} Room</Button>
             </div>
           </DialogContent>
@@ -143,6 +181,7 @@ const Rooms = () => {
                   <TableHead>Price/Night</TableHead>
                   <TableHead>Beds</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Housekeeping</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -170,6 +209,19 @@ const Rooms = () => {
                           ) : '—'}
                         </TableCell>
                         <TableCell><Badge variant={statusColor[room.status]}>{room.status}</Badge></TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => cycleHousekeeping(room)}
+                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80 cursor-pointer ${hkStatusConfig[room.housekeepingStatus || 'Clean'].color}`}
+                            title="Click to cycle status"
+                          >
+                            {(() => {
+                              const Icon = hkStatusConfig[room.housekeepingStatus || 'Clean'].icon;
+                              return <Icon className="h-3 w-3" />;
+                            })()}
+                            {hkStatusConfig[room.housekeepingStatus || 'Clean'].label}
+                          </button>
+                        </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" onClick={() => handleOpen(room)}><Pencil className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => deleteRoom(room.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -179,7 +231,7 @@ const Rooms = () => {
                       {/* Dormitory bed map */}
                       {room.type === 'Dormitory' && isExpanded && (
                         <TableRow key={`${room.id}-beds`}>
-                          <TableCell colSpan={7} className="bg-muted/30 p-4">
+                          <TableCell colSpan={8} className="bg-muted/30 p-4">
                             <div className="mb-3 flex items-center gap-4">
                               <h4 className="text-sm font-semibold">Bed Map — Room {room.roomNumber}</h4>
                               <div className="flex gap-3 text-xs">

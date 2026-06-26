@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useHotelData } from '@/hooks/useHotelData';
 import { Booking, BookingStatus, Guest } from '@/types/hotel';
-import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays, Trash2, FileText } from 'lucide-react';
+import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays, Trash2, FileText, Users } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { CheckInQRButton } from '@/components/CheckInQRButton';
 import { PaymentDialog } from '@/components/PaymentDialog';
@@ -44,6 +44,10 @@ const Bookings = () => {
   const [lines, setLines] = useState<RoomLine[]>([{ roomId: '', bedNumber: '' }]);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+  const [source, setSource] = useState('Walk-in');
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [specialRequests, setSpecialRequests] = useState('');
 
   const updateLine = (i: number, patch: Partial<RoomLine>) => {
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -89,6 +93,10 @@ const Bookings = () => {
     setLines([{ roomId: '', bedNumber: '' }]);
     setCheckIn('');
     setCheckOut('');
+    setSource('Walk-in');
+    setAdults(1);
+    setChildren(0);
+    setSpecialRequests('');
   };
 
   // Guest's past booking history
@@ -131,6 +139,10 @@ const Bookings = () => {
         status: 'Confirmed',
         totalAmount: days * room.pricePerNight,
         createdAt: new Date().toISOString(),
+        source: source as any,
+        adults,
+        children,
+        specialRequests: specialRequests || undefined,
         ...(room.type === 'Dormitory' ? { bedNumber: Number(l.bedNumber) } : {}),
         ...(groupId ? { groupId } : {}),
       };
@@ -307,6 +319,35 @@ const Bookings = () => {
                   <Input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Booking Source</Label>
+                <Select value={source} onValueChange={setSource}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['Walk-in', 'Phone', 'Booking.com', 'OYO', 'MakeMyTrip', 'Goibibo', 'Go-MMT', 'Referral', 'Website', 'Other'].map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Adults</Label>
+                  <Input type="number" min={1} value={adults} onChange={(e) => setAdults(Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Children</Label>
+                  <Input type="number" min={0} value={children} onChange={(e) => setChildren(Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1"><Users className="h-3 w-3" /> Total</Label>
+                  <div className="h-10 flex items-center text-sm font-medium text-muted-foreground">{adults + children} guests</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Special Requests (optional)</Label>
+                <Input value={specialRequests} onChange={(e) => setSpecialRequests(e.target.value)} placeholder="e.g. Early check-in, extra bed..." />
+              </div>
               <Button onClick={handleCreate}>Create Booking</Button>
             </div>
           </DialogContent>
@@ -345,6 +386,8 @@ const Bookings = () => {
                     <TableRow>
                       <TableHead>Guest</TableHead>
                       <TableHead>Room</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Guests</TableHead>
                       <TableHead>Check-in</TableHead>
                       <TableHead>Check-out</TableHead>
                       <TableHead>Amount</TableHead>
@@ -371,6 +414,12 @@ const Bookings = () => {
                           <TableCell>
                             {room?.roomNumber || '—'}
                             {b.bedNumber ? <span className="text-muted-foreground text-xs ml-1">(Bed #{b.bedNumber})</span> : ''}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px]">{b.source || 'Walk-in'}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {(b.adults || 1) + (b.children || 0)} <span className="text-xs">({b.adults || 1}A{(b.children || 0) > 0 ? ` ${b.children}C` : ''})</span>
                           </TableCell>
                           <TableCell>{format(parseISO(b.checkIn), 'dd MMM yyyy')}</TableCell>
                           <TableCell>{format(parseISO(b.checkOut), 'dd MMM yyyy')}</TableCell>

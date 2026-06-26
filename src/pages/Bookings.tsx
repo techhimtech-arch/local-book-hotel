@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useHotelData } from '@/hooks/useHotelData';
 import { Booking, BookingStatus, Guest } from '@/types/hotel';
-import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays, Trash2, FileText } from 'lucide-react';
+import { Plus, Search, LogIn, LogOut, UserCheck, List, CalendarDays, Trash2, FileText, Users } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { CheckInQRButton } from '@/components/CheckInQRButton';
 import { PaymentDialog } from '@/components/PaymentDialog';

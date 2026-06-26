@@ -44,6 +44,10 @@ const Bookings = () => {
   const [lines, setLines] = useState<RoomLine[]>([{ roomId: '', bedNumber: '' }]);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+  const [source, setSource] = useState('Walk-in');
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [specialRequests, setSpecialRequests] = useState('');
 
   const updateLine = (i: number, patch: Partial<RoomLine>) => {
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));

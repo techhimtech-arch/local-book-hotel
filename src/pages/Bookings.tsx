@@ -319,6 +319,35 @@ const Bookings = () => {
                   <Input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Booking Source</Label>
+                <Select value={source} onValueChange={setSource}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['Walk-in', 'Phone', 'Booking.com', 'OYO', 'MakeMyTrip', 'Goibibo', 'Go-MMT', 'Referral', 'Website', 'Other'].map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Adults</Label>
+                  <Input type="number" min={1} value={adults} onChange={(e) => setAdults(Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Children</Label>
+                  <Input type="number" min={0} value={children} onChange={(e) => setChildren(Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1"><Users className="h-3 w-3" /> Total</Label>
+                  <div className="h-10 flex items-center text-sm font-medium text-muted-foreground">{adults + children} guests</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Special Requests (optional)</Label>
+                <Input value={specialRequests} onChange={(e) => setSpecialRequests(e.target.value)} placeholder="e.g. Early check-in, extra bed..." />
+              </div>
               <Button onClick={handleCreate}>Create Booking</Button>
             </div>
           </DialogContent>

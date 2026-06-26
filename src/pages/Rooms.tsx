@@ -194,6 +194,19 @@ const Rooms = () => {
                           ) : '—'}
                         </TableCell>
                         <TableCell><Badge variant={statusColor[room.status]}>{room.status}</Badge></TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => cycleHousekeeping(room)}
+                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80 cursor-pointer ${hkStatusConfig[room.housekeepingStatus || 'Clean'].color}`}
+                            title="Click to cycle status"
+                          >
+                            {(() => {
+                              const Icon = hkStatusConfig[room.housekeepingStatus || 'Clean'].icon;
+                              return <Icon className="h-3 w-3" />;
+                            })()}
+                            {hkStatusConfig[room.housekeepingStatus || 'Clean'].label}
+                          </button>
+                        </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" onClick={() => handleOpen(room)}><Pencil className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => deleteRoom(room.id)}><Trash2 className="h-4 w-4" /></Button>

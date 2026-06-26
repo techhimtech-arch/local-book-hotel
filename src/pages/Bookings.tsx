@@ -415,6 +415,12 @@ const Bookings = () => {
                             {room?.roomNumber || '—'}
                             {b.bedNumber ? <span className="text-muted-foreground text-xs ml-1">(Bed #{b.bedNumber})</span> : ''}
                           </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px]">{b.source || 'Walk-in'}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {(b.adults || 1) + (b.children || 0)} <span className="text-xs">({b.adults || 1}A{(b.children || 0) > 0 ? ` ${b.children}C` : ''})</span>
+                          </TableCell>
                           <TableCell>{format(parseISO(b.checkIn), 'dd MMM yyyy')}</TableCell>
                           <TableCell>{format(parseISO(b.checkOut), 'dd MMM yyyy')}</TableCell>
                           <TableCell>₹{b.totalAmount.toLocaleString()}</TableCell>

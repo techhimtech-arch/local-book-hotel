@@ -166,6 +166,7 @@ const Rooms = () => {
                   <TableHead>Price/Night</TableHead>
                   <TableHead>Beds</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Housekeeping</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>

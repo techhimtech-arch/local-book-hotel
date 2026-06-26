@@ -7,10 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useHotelData } from '@/hooks/useHotelData';
-import { Room, RoomType, RoomStatus } from '@/types/hotel';
-import { Plus, Pencil, Trash2, ChevronDown, BedSingle, LogIn, LogOut, User } from 'lucide-react';
+import { Room, RoomType, RoomStatus, HousekeepingStatus } from '@/types/hotel';
+import { Plus, Pencil, Trash2, ChevronDown, BedSingle, LogIn, LogOut, User, Sparkles, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const roomTypes: RoomType[] = ['Single', 'Double', 'Suite', 'Deluxe', 'Dormitory'];
@@ -20,6 +19,13 @@ const statusColor: Record<RoomStatus, 'default' | 'secondary' | 'destructive'> =
   Available: 'default',
   Occupied: 'secondary',
   Maintenance: 'destructive',
+};
+
+const hkStatusConfig: Record<HousekeepingStatus, { label: string; color: string; icon: typeof Sparkles }> = {
+  Clean: { label: 'Clean', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
+  Dirty: { label: 'Dirty', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: AlertTriangle },
+  Cleaning: { label: 'Cleaning', color: 'bg-sky-100 text-sky-700 border-sky-200', icon: Sparkles },
+  Inspected: { label: 'Inspected', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: CheckCircle2 },
 };
 
 const bedStatusColor: Record<string, string> = {

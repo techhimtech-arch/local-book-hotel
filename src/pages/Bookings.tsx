@@ -386,6 +386,8 @@ const Bookings = () => {
                     <TableRow>
                       <TableHead>Guest</TableHead>
                       <TableHead>Room</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Guests</TableHead>
                       <TableHead>Check-in</TableHead>
                       <TableHead>Check-out</TableHead>
                       <TableHead>Amount</TableHead>

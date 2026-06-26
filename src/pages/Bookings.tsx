@@ -139,6 +139,10 @@ const Bookings = () => {
         status: 'Confirmed',
         totalAmount: days * room.pricePerNight,
         createdAt: new Date().toISOString(),
+        source: source as any,
+        adults,
+        children,
+        specialRequests: specialRequests || undefined,
         ...(room.type === 'Dormitory' ? { bedNumber: Number(l.bedNumber) } : {}),
         ...(groupId ? { groupId } : {}),
       };

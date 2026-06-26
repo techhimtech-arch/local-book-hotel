@@ -146,6 +146,21 @@ const Rooms = () => {
                   <SelectContent>{roomStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Housekeeping Status</Label>
+                <Select value={form.housekeepingStatus || 'Clean'} onValueChange={(v) => setForm({ ...form, housekeepingStatus: v as HousekeepingStatus })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['Clean', 'Dirty', 'Cleaning', 'Inspected'] as HousekeepingStatus[]).map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Room Notes (optional)</Label>
+                <Input value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="e.g. AC needs service, newly renovated..." />
+              </div>
               <Button onClick={handleSave}>{editing ? 'Update' : 'Add'} Room</Button>
             </div>
           </DialogContent>

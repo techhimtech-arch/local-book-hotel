@@ -18,6 +18,7 @@ const navItems = [
   { title: 'Rooms', url: '/rooms', icon: BedDouble },
   { title: 'Bookings', url: '/bookings', icon: CalendarCheck },
   { title: 'Guests', url: '/guests', icon: Users },
+  { title: 'Expenses', url: '/expenses', icon: Receipt },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Backup', url: '/backup', icon: HardDriveDownload },
 ];

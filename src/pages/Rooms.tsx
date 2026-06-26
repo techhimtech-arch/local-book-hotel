@@ -231,7 +231,7 @@ const Rooms = () => {
                       {/* Dormitory bed map */}
                       {room.type === 'Dormitory' && isExpanded && (
                         <TableRow key={`${room.id}-beds`}>
-                          <TableCell colSpan={7} className="bg-muted/30 p-4">
+                          <TableCell colSpan={8} className="bg-muted/30 p-4">
                             <div className="mb-3 flex items-center gap-4">
                               <h4 className="text-sm font-semibold">Bed Map — Room {room.roomNumber}</h4>
                               <div className="flex gap-3 text-xs">

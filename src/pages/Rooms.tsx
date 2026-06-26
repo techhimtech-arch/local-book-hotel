@@ -52,12 +52,29 @@ const Rooms = () => {
   const handleOpen = (room?: Room) => {
     if (room) {
       setEditing(room);
-      setForm({ roomNumber: room.roomNumber, floor: room.floor, type: room.type, pricePerNight: room.pricePerNight, status: room.status, totalBeds: room.totalBeds });
+      setForm({
+        roomNumber: room.roomNumber,
+        floor: room.floor,
+        type: room.type,
+        pricePerNight: room.pricePerNight,
+        status: room.status,
+        totalBeds: room.totalBeds,
+        housekeepingStatus: room.housekeepingStatus,
+        notes: room.notes,
+      });
     } else {
       setEditing(null);
       setForm(emptyRoom);
     }
     setOpen(true);
+  };
+
+  const cycleHousekeeping = (room: Room) => {
+    const order: HousekeepingStatus[] = ['Clean', 'Dirty', 'Cleaning', 'Inspected'];
+    const current = room.housekeepingStatus || 'Clean';
+    const nextIndex = (order.indexOf(current) + 1) % order.length;
+    const next = order[nextIndex];
+    updateRoom({ ...room, housekeepingStatus: next, lastCleanedAt: next === 'Clean' ? new Date().toISOString() : room.lastCleanedAt });
   };
 
   const handleSave = () => {

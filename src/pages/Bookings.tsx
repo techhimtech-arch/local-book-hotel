@@ -93,6 +93,10 @@ const Bookings = () => {
     setLines([{ roomId: '', bedNumber: '' }]);
     setCheckIn('');
     setCheckOut('');
+    setSource('Walk-in');
+    setAdults(1);
+    setChildren(0);
+    setSpecialRequests('');
   };
 
   // Guest's past booking history

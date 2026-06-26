@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useHotelData } from '@/hooks/useHotelData';
-import { BedDouble, BedSingle, DollarSign, TrendingUp, LogIn, LogOut } from 'lucide-react';
-import { format, isToday, parseISO } from 'date-fns';
+import { BedDouble, BedSingle, DollarSign, TrendingUp, LogIn, LogOut, TrendingDown, PiggyBank } from 'lucide-react';
+import { format, isToday, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 const Dashboard = () => {
-  const { rooms, bookings, getGuestById, getRoomById, getAvailableBeds } = useHotelData();
+  const { rooms, bookings, expenses, getGuestById, getRoomById, getAvailableBeds } = useHotelData();
 
   const stats = useMemo(() => {
     const totalRooms = rooms.length;
@@ -27,14 +27,29 @@ const Dashboard = () => {
       (b) => b.status === 'Checked-in' && isToday(parseISO(b.checkOut))
     );
 
-    const monthStart = new Date();
-    monthStart.setDate(1);
+    const monthStart = startOfMonth(new Date());
     const monthRevenue = bookings
-      .filter((b) => b.status !== 'Cancelled' && parseISO(b.createdAt) >= monthStart)
+      .filter((b) => b.status !== 'Cancelled' && isWithinInterval(parseISO(b.checkIn), { start: monthStart, end: endOfMonth(new Date()) }))
       .reduce((sum, b) => sum + b.totalAmount, 0);
 
-    return { totalRooms, occupied, available, occupancyRate, todayCheckIns, todayCheckOuts, monthRevenue, totalDormBeds, availDormBeds };
-  }, [rooms, bookings, getAvailableBeds]);
+    const monthExpenses = expenses
+      .filter((e) => isWithinInterval(parseISO(e.date), { start: monthStart, end: endOfMonth(new Date()) }))
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const profit = monthRevenue - monthExpenses;
+
+    // Housekeeping stats
+    const dirtyRooms = rooms.filter((r) => r.housekeepingStatus === 'Dirty').length;
+    const cleaningRooms = rooms.filter((r) => r.housekeepingStatus === 'Cleaning').length;
+
+    return {
+      totalRooms, occupied, available, occupancyRate,
+      todayCheckIns, todayCheckOuts,
+      monthRevenue, monthExpenses, profit,
+      totalDormBeds, availDormBeds,
+      dirtyRooms, cleaningRooms,
+    };
+  }, [rooms, bookings, expenses, getAvailableBeds]);
 
   return (
     <div className="space-y-6">
@@ -83,14 +98,67 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Today's Check-outs</CardTitle>
+            <LogOut className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{stats.monthRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{stats.todayCheckOuts.length}</div>
           </CardContent>
         </Card>
       </div>
+
+      {/* P&L row */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">₹{stats.monthRevenue.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
+            <TrendingDown className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">₹{stats.monthExpenses.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle>
+            <PiggyBank className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ₹{stats.profit.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Housekeeping alert */}
+      {(stats.dirtyRooms > 0 || stats.cleaningRooms > 0) && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-4 text-sm">
+              {stats.dirtyRooms > 0 && (
+                <span className="font-medium text-amber-800">
+                  {stats.dirtyRooms} room{stats.dirtyRooms > 1 ? 's' : ''} need cleaning
+                </span>
+              )}
+              {stats.cleaningRooms > 0 && (
+                <span className="font-medium text-sky-700">
+                  {stats.cleaningRooms} room{stats.cleaningRooms > 1 ? 's' : ''} being cleaned
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

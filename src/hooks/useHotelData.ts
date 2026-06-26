@@ -1,10 +1,11 @@
 import { useLocalStorage } from './useLocalStorage';
-import { Room, Guest, Booking } from '@/types/hotel';
+import { Room, Guest, Booking, Expense } from '@/types/hotel';
 
 export function useHotelData() {
   const [rooms, setRooms] = useLocalStorage<Room[]>('hotel_rooms', []);
   const [guests, setGuests] = useLocalStorage<Guest[]>('hotel_guests', []);
   const [bookings, setBookings] = useLocalStorage<Booking[]>('hotel_bookings', []);
+  const [expenses, setExpenses] = useLocalStorage<Expense[]>('hotel_expenses', []);
 
   const addRoom = (room: Room) => setRooms((prev) => [...prev, room]);
   const updateRoom = (room: Room) => setRooms((prev) => prev.map((r) => (r.id === room.id ? room : r)));
@@ -15,6 +16,10 @@ export function useHotelData() {
 
   const addBooking = (booking: Booking) => setBookings((prev) => [...prev, booking]);
   const updateBooking = (booking: Booking) => setBookings((prev) => prev.map((b) => (b.id === booking.id ? booking : b)));
+
+  const addExpense = (expense: Expense) => setExpenses((prev) => [...prev, expense]);
+  const updateExpense = (expense: Expense) => setExpenses((prev) => prev.map((e) => (e.id === expense.id ? expense : e)));
+  const deleteExpense = (id: string) => setExpenses((prev) => prev.filter((e) => e.id !== id));
 
   const getGuestById = (id: string) => guests.find((g) => g.id === id);
   const getRoomById = (id: string) => rooms.find((r) => r.id === id);
@@ -65,12 +70,40 @@ export function useHotelData() {
     });
   };
 
+  // Revenue / expense helpers
+  const getRevenueForRange = (from: Date, to: Date) => {
+    const fromTime = from.getTime();
+    const toTime = to.getTime();
+    return bookings
+      .filter((b) => b.status !== 'Cancelled')
+      .filter((b) => {
+        const t = new Date(b.checkIn).getTime();
+        return t >= fromTime && t <= toTime;
+      })
+      .reduce((sum, b) => sum + b.totalAmount, 0);
+  };
+
+  const getExpensesForRange = (from: Date, to: Date) => {
+    const fromTime = from.getTime();
+    const toTime = to.getTime();
+    return expenses.filter((e) => {
+      const t = new Date(e.date).getTime();
+      return t >= fromTime && t <= toTime;
+    });
+  };
+
+  const getTotalExpensesForRange = (from: Date, to: Date) => {
+    return getExpensesForRange(from, to).reduce((sum, e) => sum + e.amount, 0);
+  };
+
   return {
-    rooms, guests, bookings,
+    rooms, guests, bookings, expenses,
     addRoom, updateRoom, deleteRoom,
     addGuest, updateGuest,
     addBooking, updateBooking,
+    addExpense, updateExpense, deleteExpense,
     getGuestById, getRoomById,
     getOccupiedBeds, getAvailableBeds, getBedDetails,
+    getRevenueForRange, getExpensesForRange, getTotalExpensesForRange,
   };
 }

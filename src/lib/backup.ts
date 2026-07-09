@@ -1,5 +1,7 @@
 // Encrypted backup utilities using WebCrypto (AES-GCM + PBKDF2)
-const STORAGE_KEYS = ['hotel_rooms', 'hotel_guests', 'hotel_bookings', 'hotel_expenses'];
+import { getCached, setCached, KNOWN_KEYS } from '@/lib/idbStore';
+
+const STORAGE_KEYS = [...KNOWN_KEYS];
 const MAGIC = 'HBM1'; // Hotel Booking Manager v1
 const PBKDF2_ITERATIONS = 200_000;
 

@@ -1,5 +1,7 @@
 // Encrypted backup utilities using WebCrypto (AES-GCM + PBKDF2)
-const STORAGE_KEYS = ['hotel_rooms', 'hotel_guests', 'hotel_bookings', 'hotel_expenses'];
+import { getCached, setCached, KNOWN_KEYS } from '@/lib/idbStore';
+
+const STORAGE_KEYS = [...KNOWN_KEYS];
 const MAGIC = 'HBM1'; // Hotel Booking Manager v1
 const PBKDF2_ITERATIONS = 200_000;
 
@@ -36,11 +38,11 @@ async function deriveKey(password: string, salt: Uint8Array) {
 export function collectHotelData() {
   const data: Record<string, unknown> = {};
   STORAGE_KEYS.forEach((k) => {
-    const raw = localStorage.getItem(k);
-    if (raw) data[k] = JSON.parse(raw);
+    const v = getCached<unknown>(k, undefined as unknown);
+    if (v !== undefined) data[k] = v;
   });
   data._exportedAt = new Date().toISOString();
-  data._version = 1;
+  data._version = 2; // v2: IndexedDB-backed
   return data;
 }
 
@@ -81,7 +83,7 @@ export async function decryptAndRestore(file: File, password: string) {
   let restored = 0;
   STORAGE_KEYS.forEach((k) => {
     if (Array.isArray(data[k])) {
-      localStorage.setItem(k, JSON.stringify(data[k]));
+      setCached(k, data[k]);
       restored++;
     }
   });

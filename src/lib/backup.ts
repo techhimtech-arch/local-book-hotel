@@ -83,7 +83,7 @@ export async function decryptAndRestore(file: File, password: string) {
   let restored = 0;
   STORAGE_KEYS.forEach((k) => {
     if (Array.isArray(data[k])) {
-      localStorage.setItem(k, JSON.stringify(data[k]));
+      setCached(k, data[k]);
       restored++;
     }
   });

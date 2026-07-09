@@ -38,11 +38,11 @@ async function deriveKey(password: string, salt: Uint8Array) {
 export function collectHotelData() {
   const data: Record<string, unknown> = {};
   STORAGE_KEYS.forEach((k) => {
-    const raw = localStorage.getItem(k);
-    if (raw) data[k] = JSON.parse(raw);
+    const v = getCached<unknown>(k, undefined as unknown);
+    if (v !== undefined) data[k] = v;
   });
   data._exportedAt = new Date().toISOString();
-  data._version = 1;
+  data._version = 2; // v2: IndexedDB-backed
   return data;
 }
 

@@ -70,9 +70,9 @@ export async function decryptAndRestore(file: File, password: string) {
   let plainBuf: ArrayBuffer;
   try {
     plainBuf = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: unb64(env.iv) },
+      { name: 'AES-GCM', iv: unb64(env.iv) as BufferSource },
       key,
-      unb64(env.ciphertext)
+      unb64(env.ciphertext) as BufferSource
     );
   } catch {
     throw new Error('Wrong password or corrupted file.');

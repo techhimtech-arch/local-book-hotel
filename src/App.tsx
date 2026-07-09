@@ -36,18 +36,20 @@ const App = () => (
               path="/*"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/rooms" element={<Rooms />} />
-                      <Route path="/bookings" element={<Bookings />} />
-                      <Route path="/guests" element={<Guests />} />
-                      <Route path="/expenses" element={<Expenses />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/backup" element={<Backup />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </AppLayout>
+                  <StorageGate>
+                    <AppLayout>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/rooms" element={<Rooms />} />
+                        <Route path="/bookings" element={<Bookings />} />
+                        <Route path="/guests" element={<Guests />} />
+                        <Route path="/expenses" element={<Expenses />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/backup" element={<Backup />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </AppLayout>
+                  </StorageGate>
                 </ProtectedRoute>
               }
             />

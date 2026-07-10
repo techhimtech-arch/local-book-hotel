@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
       "react-dom/client",
       "react/jsx-runtime",
       "@tanstack/react-query",
+      "@radix-ui/react-tooltip",
     ],
-    exclude: ["@radix-ui/react-tooltip"],
   },
 }));
